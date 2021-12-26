@@ -51,7 +51,7 @@ def parse_entity_for_drive_id(message):
 
         logger.debug('Found {0} with folder_id {1}.'.format(name, folder_id))
 
-    if len(folder_ids) == 0:
+    if not folder_ids:
         logger.debug('Cannot find any legit folder id.')
         return None
     return folder_ids
@@ -84,12 +84,17 @@ def process_drive_links(update, context):
     message += '\n📂 Please select the target destination'
     fav_folder_ids = context.user_data.get(udkey_folders, None)
 
-    callback_query_prefix = 'save_to_folder'
-    page = 1
     if fav_folder_ids:
-        page_data = []
-        for item in fav_folder_ids:
-            page_data.append({'text': simplified_path(fav_folder_ids[item]['path']), 'data': '{}'.format(item)})
+        page_data = [
+            {
+                'text': simplified_path(fav_folder_ids[item]['path']),
+                'data': '{}'.format(item),
+            }
+            for item in fav_folder_ids
+        ]
+
+        callback_query_prefix = 'save_to_folder'
+        page = 1
         inline_keyboard_drive_ids = get_inline_keyboard_pagination_data(
             callback_query_prefix,
             page_data,
@@ -104,8 +109,6 @@ def process_drive_links(update, context):
 
 
 def save_to_folder_page(update, context):
-    callback_query_prefix = 'save_to_folder'
-
     query = update.callback_query
     if query.message.chat_id < 0 and \
             (not query.message.reply_to_message or
@@ -122,9 +125,16 @@ def save_to_folder_page(update, context):
     fav_folder_ids = context.user_data.get(udkey_folders, None)
 
     if fav_folder_ids:
-        page_data = []
-        for item in fav_folder_ids:
-            page_data.append({'text': simplified_path(fav_folder_ids[item]['path']), 'data': '{}'.format(item)})
+        page_data = [
+            {
+                'text': simplified_path(fav_folder_ids[item]['path']),
+                'data': '{}'.format(item),
+            }
+            for item in fav_folder_ids
+        ]
+
+        callback_query_prefix = 'save_to_folder'
+
         inline_keyboard_drive_ids = get_inline_keyboard_pagination_data(
             callback_query_prefix,
             page_data,
@@ -152,10 +162,7 @@ def save_to_folder(update, context):
         query.answer(text='Yo-he!', show_alert=True)
         return
     message = query.message
-    if message.caption:
-        text = message.caption
-    else:
-        text = message.text
+    text = message.caption or message.text
     folder_ids = parse_entity_for_drive_id(message)
 
     if not folder_ids:

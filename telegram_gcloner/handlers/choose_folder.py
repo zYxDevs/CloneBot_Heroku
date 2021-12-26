@@ -181,10 +181,7 @@ def choose_folder(update, context):
         page = 1
 
     folders_len = len(folders)
-    page_data = []
-    for item in folders:
-        page_data.append({'text': folders[item], 'data': item})
-
+    page_data = [{'text': folders[item], 'data': item} for item in folders]
     page_data_chosen = list(context.user_data.get(udkey_folders, {}))
     inline_keyboard_drive_ids = get_inline_keyboard_pagination_data(
         callback_query_prefix,
@@ -233,7 +230,6 @@ def set_folders(update, context):
 
     callback_query_prefix = 'choose_folder'
     query = update.callback_query
-    page = 1
     if not query:
         rsp = update.message.reply_text('⚙️ Getting shared drives...')
         rsp.done.wait(timeout=60)
@@ -250,9 +246,15 @@ def set_folders(update, context):
 
     if folder_ids:
         folder_ids_len = len(folder_ids)
-        page_data = []
-        for item in folder_ids:
-            page_data.append({'text': simplified_path(folder_ids[item]['path']), 'data': '{}'.format(item)})
+        page_data = [
+            {
+                'text': simplified_path(folder_ids[item]['path']),
+                'data': '{}'.format(item),
+            }
+            for item in folder_ids
+        ]
+
+        page = 1
         inline_keyboard_drive_ids = get_inline_keyboard_pagination_data(
             callback_query_prefix + '_replace',
             page_data,

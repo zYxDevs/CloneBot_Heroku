@@ -57,10 +57,7 @@ class MQBot(telegram.bot.Bot):
                 chat_id = kwargs["chat_id"]
             elif len(args) > 0:
                 chat_id = args[0]
-            if type(chat_id) is str:
-                is_group = True
-            else:
-                is_group = (chat_id < 0)
+            is_group = True if type(chat_id) is str else (chat_id < 0)
             return method(self, *args, **kwargs, isgroup=is_group)
 
     @mq.queuedmessage
@@ -172,7 +169,7 @@ def load_handlers(dispatcher: Dispatcher):
             module = import_module(f'.{handler_module}', 'handlers')
             module.init(dispatcher)
             logger.info('loaded handler module: {}'.format(handler_module))
-    module = import_module(f'.process_message', 'handlers')
+    module = import_module('.process_message', 'handlers')
     module.init(dispatcher)
     logger.info('loaded handler module: process_message')
 
@@ -206,9 +203,8 @@ def error(update, context):
 
     context_error = str(context.error)
     # lets put this in a "well" formatted text
-    text = f"Hey.\n The error <code>{html.escape(context_error)}</code> happened{str(payload)}. " \
-           f"The full traceback:\n\n<code>{html.escape(str(trace))}" \
-           f"</code>"
+    text = f'Hey.\n The error <code>{html.escape(context_error)}</code> happened{payload}. The full traceback:\n\n<code>{html.escape(str(trace))}</code>'
+
 
     # ignore message is not modified error from telegram
     if 'Message is not modified' in context_error:

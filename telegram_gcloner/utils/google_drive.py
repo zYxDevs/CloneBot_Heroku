@@ -57,10 +57,7 @@ class GoogleDrive:
             except errors.HttpError as error:
                 logger.warning('An error occurred: %s' % error)
                 break
-        drive_dict = {}
-        for item in result:
-            drive_dict[item['id']] = item['name']
-        return drive_dict
+        return {item['id']: item['name'] for item in result}
 
     def get_file_name(self, file_id):
         param = {
@@ -89,11 +86,10 @@ class GoogleDrive:
             parent_entry = {'name': file_info['name'], 'folder_id': file_id}
         parent = file_info.get('parents', None)
         result.append(parent_entry)
-        if not parent:
-            logger.debug(str(result))
-            return result
-        else:
+        if parent:
             return self.get_file_path_from_id(parent[0], result)
+        logger.debug(str(result))
+        return result
 
     def get_drive_name(self, drive_id):
         param = {
@@ -130,11 +126,8 @@ class GoogleDrive:
             except errors.HttpError as error:
                 logger.info('An error occurred: %s' % error)
                 break
-        drive_dict = {}
         result_sorted = sorted(result, key=lambda k: k['name'])
-        for item in result_sorted:
-            drive_dict[item['id']] = item['name']
-        return drive_dict
+        return {item['id']: item['name'] for item in result_sorted}
 
     def get_folder_link(self, folder_id, folder_path):
         folder_path_list = list(filter(None, folder_path.split('/')))

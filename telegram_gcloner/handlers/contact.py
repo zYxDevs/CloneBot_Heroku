@@ -33,21 +33,14 @@ def contact(update, context):
                                     message_id=update.message.message_id)
         logger.info('{} ({}) left a message: {}'.format(update.effective_user.name, update.effective_user.id, text))
         rsp = update.message.reply_text('Roger that 👍')
-        rsp.done.wait(timeout=60)
-        message_id = rsp.result().message_id
-        if update.message.chat_id < 0:
-            context.job_queue.run_once(callback_delete_message, config.TIMER_TO_DELETE_MESSAGE,
-                                       context=(update.message.chat_id, message_id))
-            context.job_queue.run_once(callback_delete_message, config.TIMER_TO_DELETE_MESSAGE,
-                                       context=(update.message.chat_id, update.message.message_id))
     else:
         rsp = update.message.reply_text('You\'re so shy, don\'t you want to say anything?\n' +
                                         config.AD_STRING.format(context.bot.username),
                                         ParseMode.HTML)
-        rsp.done.wait(timeout=60)
-        message_id = rsp.result().message_id
-        if update.message.chat_id < 0:
-            context.job_queue.run_once(callback_delete_message, config.TIMER_TO_DELETE_MESSAGE,
-                                       context=(update.message.chat_id, message_id))
-            context.job_queue.run_once(callback_delete_message, config.TIMER_TO_DELETE_MESSAGE,
-                                       context=(update.message.chat_id, update.message.message_id))
+    rsp.done.wait(timeout=60)
+    message_id = rsp.result().message_id
+    if update.message.chat_id < 0:
+        context.job_queue.run_once(callback_delete_message, config.TIMER_TO_DELETE_MESSAGE,
+                                   context=(update.message.chat_id, message_id))
+        context.job_queue.run_once(callback_delete_message, config.TIMER_TO_DELETE_MESSAGE,
+                                   context=(update.message.chat_id, update.message.message_id))

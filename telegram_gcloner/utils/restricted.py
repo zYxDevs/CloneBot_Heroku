@@ -103,7 +103,7 @@ def restricted_group_and_its_members_in_private(func):
                     if info.status in ['creator', 'administrator', 'member']:
                         allow = True
                         break
-        if allow is False:
+        if not allow:
             logger.info('Unauthorized access denied for group and its members messages{} {}.'
                         .format(update.effective_user.full_name, user_id))
             return
