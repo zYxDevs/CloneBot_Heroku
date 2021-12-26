@@ -38,7 +38,15 @@ class MySaveFileThread(threading.Thread):
         gd = GoogleDrive(user_id)
         message = '╭──────⌈ 📥 Copying ⌋──────╮\n│\n├ 📂 Target directory：{}\n'.format(dest_folder['path'])
         inline_keyboard = InlineKeyboardMarkup(
-            [[InlineKeyboardButton(text=f'🚫 Stop', callback_data=f'stop_task,{thread_id}')]])
+            [
+                [
+                    InlineKeyboardButton(
+                        text='🚫 Stop', callback_data=f'stop_task,{thread_id}'
+                    )
+                ]
+            ]
+        )
+
 
         reply_message_id = update.callback_query.message.reply_to_message.message_id \
             if update.callback_query.message.reply_to_message else None
@@ -50,6 +58,10 @@ class MySaveFileThread(threading.Thread):
         rsp.done.wait(timeout=60)
         message_id = rsp.result().message_id
 
+        regex_checked_files = r'Checks:\s+(\d+)\s+/\s+(\d+)'
+        regex_total_files = r'Transferred:\s+(\d+) / (\d+), (\d+)%(?:,\s*([\d.]+\sFiles/s))?'
+        regex_total_size = r'Transferred:[\s]+([\d.]+\s*[kMGTP]?) / ([\d.]+[\s]?[kMGTP]?Bytes),' \
+                           r'\s*(?:\-|(\d+)\%),\s*([\d.]+\s*[kMGTP]?Bytes/s),\s*ETA\s*([\-0-9hmsdwy]+)'
         for folder_id in folder_ids:
             destination_path = folder_ids[folder_id]
 
@@ -64,7 +76,7 @@ class MySaveFileThread(threading.Thread):
             ]
             if config.GCLONE_PARA_OVERRIDE:
                 command_line.extend(config.GCLONE_PARA_OVERRIDE)
-            elif is_fclone is True:
+            elif is_fclone:
                 command_line += [
                     '--checkers=256',
                     '--transfers=256',
@@ -110,10 +122,6 @@ class MySaveFileThread(threading.Thread):
             progress_speed_file = '-'
             progress_eta = '-'
             progress_size_percentage_10 = 0
-            regex_checked_files = r'Checks:\s+(\d+)\s+/\s+(\d+)'
-            regex_total_files = r'Transferred:\s+(\d+) / (\d+), (\d+)%(?:,\s*([\d.]+\sFiles/s))?'
-            regex_total_size = r'Transferred:[\s]+([\d.]+\s*[kMGTP]?) / ([\d.]+[\s]?[kMGTP]?Bytes),' \
-                               r'\s*(?:\-|(\d+)\%),\s*([\d.]+\s*[kMGTP]?Bytes/s),\s*ETA\s*([\-0-9hmsdwy]+)'
             message_progress_last = ''
             message_progress = ''
             progress_update_time = datetime.datetime.now() - datetime.timedelta(minutes=5)
@@ -153,29 +161,38 @@ class MySaveFileThread(threading.Thread):
                         progress_checked_files = int(match_checked_files.group(1))
                         progress_total_check_files = int(match_checked_files.group(2))
                     progress_max_percentage_10 = max(progress_size_percentage_10, progress_file_percentage_10)
-                    message_progress = '├ 🗂 Source : <a href="https://drive.google.com/open?id={}">{}</a>\n│\n' \
-                                       '├ ✔️ Checks： <code>{} / {}</code>\n' \
-                                       '├ 📥 Transfers： <code>{} / {}</code>\n' \
-                                       '├ 📦 Size：<code>{} / {}</code>\n{}' \
-                                       '├ ⚡️Speed：<code>{}</code> \n├⏳ ETA: <code>{}</code>\n' \
-                                       '├ ⛩ Progress：[<code>{}</code>] {: >4}%\n│\n' \
-                                       '├──────⌈ ⚡️ CloneBot ⌋──────' \
-                        .format(
-                        folder_id,
-                        html.escape(destination_path),
-                        progress_checked_files,
-                        progress_total_check_files,
-                        progress_transferred_file,
-                        progress_total_files,
-                        progress_transferred_size,
-                        progress_total_size,
-                        f'Speed：<code>{progress_speed_file}</code>\n' if is_fclone is True else '',
-                        progress_speed,
-                        progress_eta,
-                        '●' * progress_file_percentage_10 + '○' * (
-                                progress_max_percentage_10 - progress_file_percentage_10) + ' ' * (
-                                10 - progress_max_percentage_10),
-                        progress_file_percentage)
+                    message_progress = (
+                        '├ 🗂 Source : <a href="https://drive.google.com/open?id={}">{}</a>\n│\n'
+                        '├ ✔️ Checks： <code>{} / {}</code>\n'
+                        '├ 📥 Transfers： <code>{} / {}</code>\n'
+                        '├ 📦 Size：<code>{} / {}</code>\n{}'
+                        '├ ⚡️Speed：<code>{}</code> \n├⏳ ETA: <code>{}</code>\n'
+                        '├ ⛩ Progress：[<code>{}</code>] {: >4}%\n│\n'
+                        '├──────⌈ ⚡️ CloneBot ⌋──────'.format(
+                            folder_id,
+                            html.escape(destination_path),
+                            progress_checked_files,
+                            progress_total_check_files,
+                            progress_transferred_file,
+                            progress_total_files,
+                            progress_transferred_size,
+                            progress_total_size,
+                            f'Speed：<code>{progress_speed_file}</code>\n'
+                            if is_fclone
+                            else '',
+                            progress_speed,
+                            progress_eta,
+                            '●' * progress_file_percentage_10
+                            + '○'
+                            * (
+                                progress_max_percentage_10
+                                - progress_file_percentage_10
+                            )
+                            + ' ' * (10 - progress_max_percentage_10),
+                            progress_file_percentage,
+                        )
+                    )
+
 
                     match = re.search(r'Failed to copy: failed to make directory', output)
                     if match:
@@ -211,20 +228,23 @@ class MySaveFileThread(threading.Thread):
                         self.critical_fault = True
                         break
 
-                    if message_progress != message_progress_last:
-                        if datetime.datetime.now() - progress_update_time > datetime.timedelta(seconds=5):
-                            temp_message = '{}{}'.format(message, message_progress)
-                            try:
-                                context.bot.edit_message_text(chat_id=chat_id, message_id=message_id,
-                                                              text=temp_message, parse_mode=ParseMode.HTML,
-                                                              disable_web_page_preview=True,
-                                                              reply_markup=inline_keyboard)
-                            except Exception as e:
-                                logger.debug(
-                                    'Error {} occurs when editing message {} for user {} in chat {}: \n│{}'.format(
-                                        e, message_id, user_id, chat_id, temp_message))
-                            message_progress_last = message_progress
-                            progress_update_time = datetime.datetime.now()
+                    if (
+                        message_progress != message_progress_last
+                        and datetime.datetime.now() - progress_update_time
+                        > datetime.timedelta(seconds=5)
+                    ):
+                        temp_message = '{}{}'.format(message, message_progress)
+                        try:
+                            context.bot.edit_message_text(chat_id=chat_id, message_id=message_id,
+                                                          text=temp_message, parse_mode=ParseMode.HTML,
+                                                          disable_web_page_preview=True,
+                                                          reply_markup=inline_keyboard)
+                        except Exception as e:
+                            logger.debug(
+                                'Error {} occurs when editing message {} for user {} in chat {}: \n│{}'.format(
+                                    e, message_id, user_id, chat_id, temp_message))
+                        message_progress_last = message_progress
+                        progress_update_time = datetime.datetime.now()
 
                     if self.critical_fault:
                         message_progress = '{}\n│\n│ User terminated'.format(message_progress)

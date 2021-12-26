@@ -64,7 +64,7 @@ def unban(update: Update, context: CallbackContext):
         context.dispatcher.update_persistence()
         update.message.reply_text('✅ Removed from the blacklist.')
         logger.info('{} is unbanned.'.format(user_id))
-        return
     else:
         update.message.reply_text('✖️ The user is not on the blacklist.')
-        return
+
+    return

@@ -57,7 +57,7 @@ def unvip(update: Update, context: CallbackContext):
         context.dispatcher.update_persistence()
         update.message.reply_text('Removed from VIP.')
         logger.info('{} is removed from vip list.'.format(user_id))
-        return
     else:
         update.message.reply_text('User is not VIP.')
-        return
+
+    return

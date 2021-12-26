@@ -14,8 +14,6 @@ logger = logging.getLogger(__name__)
 
 
 def parse_folder_id_from_url(url):
-    folder_id = None
-
     pattern = r'https://drive\.google\.com/(?:' \
               r'drive/(?:u/[\d]+/)?(?:mobile/)?folders/([\w.\-_]+)(?:\?[\=\w]+)?|' \
               r'folderview\?id=([\w.\-_]+)(?:\&[=\w]+)?|' \
@@ -25,9 +23,7 @@ def parse_folder_id_from_url(url):
               r')'
 
     x = re.search(pattern, url)
-    if x:
-        folder_id = ''.join(filter(None, x.groups()))
-
+    folder_id = ''.join(filter(None, x.groups())) if x else None
     if folder_id:
         logger.debug('folder_id: {}'.format(folder_id))
     return folder_id
@@ -88,13 +84,19 @@ def get_inline_keyboard_pagination_data(callback_query_prefix, page_data, page_d
 
 
 def get_inline_keyboard_pagination_paginator(callback_query_prefix, total_page, page=1, total_pages_shown=5):
-    inline_keyboard_pagination_page = []
     start_page = min(max(page - total_pages_shown // 2, 1), max(total_page - total_pages_shown + 1, 1))
-    for i in range(start_page, min(start_page + total_pages_shown, total_page + 1)):
-        inline_keyboard_pagination_page.append(
-            InlineKeyboardButton('{}'.format(i) if i != page else '*{}'.format(i),
-                                 callback_data='{}_page#{}'.format(callback_query_prefix, i) if i != page else '#'
-                                 ))
+    inline_keyboard_pagination_page = [
+        InlineKeyboardButton(
+            '{}'.format(i) if i != page else '*{}'.format(i),
+            callback_data='{}_page#{}'.format(callback_query_prefix, i)
+            if i != page
+            else '#',
+        )
+        for i in range(
+            start_page, min(start_page + total_pages_shown, total_page + 1)
+        )
+    ]
+
     inline_keyboard_pagination = [inline_keyboard_pagination_page]
     if total_page > total_pages_shown:
         previous_1 = max(page - 1, 1)
